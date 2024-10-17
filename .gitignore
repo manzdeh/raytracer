@@ -1,0 +1,9 @@
+bin/
+
+.vs/
+*.exe
+*.lib
+*.pdb
+*.dll
+
+raytracer
