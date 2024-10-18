@@ -14,8 +14,9 @@ set linker_flags=/nologo /INCREMENTAL:NO /SUBSYSTEM:CONSOLE
 set libs=kernel32.lib user32.lib
 
 set translation_units= ^
+..\src\commands.cpp ^
 ..\src\main.cpp ^
-..\src\commands.cpp
+..\src\software_raytracer.cpp
 
 set "should_build_release="
 
@@ -37,7 +38,6 @@ if defined should_build_release (
    set compiler_flags=%compiler_flags% /Od /MTd /Zi
    set linker_flags=%linker_flags% /DEBUG:FULL /PDB:"%outputname%.pdb"
 )
-
 
 echo.
 
