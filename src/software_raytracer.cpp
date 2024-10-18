@@ -6,13 +6,13 @@ software_raytracer::~software_raytracer() {
     delete[] framebuffer_;
 }
 
-bool software_raytracer::setup(u32 width, u32 height) {
-    width_ = width;
-    height_ = height;
+bool software_raytracer::setup() {
+    if(query_resolution()) {
+       framebuffer_ = new u32[width_ * height_]{0};
+       return true;
+    }
 
-    framebuffer_ = new u32[width_ * height_]{0};
-
-    return true;
+    return false;
 }
 
 void software_raytracer::trace() {

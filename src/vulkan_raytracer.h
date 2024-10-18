@@ -10,7 +10,7 @@ namespace ae {
         vulkan_raytracer() = default;
         ~vulkan_raytracer() override {}
 
-        bool setup(u32, u32) override { return false; }
+        bool setup() override { return false; }
         void trace() override {}
         std::span<u32> get_result() const override { return {}; }
     };

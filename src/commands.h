@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "string_utils.h"
 
 #include <span>
 #include <string>
@@ -9,8 +10,6 @@
 
 namespace ae {
     class command_handler {
-        using key = std::string;
-
     public:
         using variant = std::variant<std::monostate, bool, u32, std::string>;
 
@@ -19,7 +18,7 @@ namespace ae {
         static void create(std::span<char *> arguments);
         static void destroy();
 
-        variant value(const std::string &argument);
+        variant value(ae::strhash argument) const;
 
     private:
         command_handler(std::span<char *> arguments);
@@ -29,6 +28,6 @@ namespace ae {
         bool parse_str(const char *str, variant &var);
 
         static command_handler *instance;
-        std::unordered_map<key, variant> arguments_; // TODO: Change std::string to compile-time hashed value
+        std::unordered_map<ae::strhash, variant> arguments_;
     };
 }

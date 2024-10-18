@@ -8,7 +8,7 @@ namespace ae {
         software_raytracer() = default;
         ~software_raytracer() override;
 
-        bool setup(u32 width, u32 height) override;
+        bool setup() override;
         void trace() override;
         std::span<u32> get_result() const override;
 

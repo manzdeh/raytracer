@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
+#include <optional>
 
 namespace ae {
 
@@ -23,25 +24,28 @@ void command_handler::destroy() {
     delete instance;
 }
 
-command_handler::variant command_handler::value(const std::string &argument) {
-    if(!arguments_.contains(argument)) {
+command_handler::variant command_handler::value(ae::strhash argument) const {
+    auto it = arguments_.find(argument);
+
+    if(it == arguments_.end()) {
         return command_handler::variant{};
     }
 
-    return arguments_[argument];
+    return it->second;
 }
 
 command_handler::command_handler(std::span<char *> arguments) {
     constexpr struct {
         u32 operand_offset;
         const char *cmd;
-        const char *key;
+        ae::strhash key;
         bool (command_handler::*parse)(const char *, command_handler::variant &);
+        std::optional<ae::command_handler::variant> default_value = std::nullopt;
     } table[] = {
-        { 1, "--width", "width", &command_handler::parse_u32 },
-        { 1, "--height", "height", &command_handler::parse_u32 },
-        { 0, "--compute", "compute", &command_handler::parse_bool },
-        { 1, "--output", "output", &command_handler::parse_str }
+        { 1, "--width", "width"_hash, &command_handler::parse_u32, 512u },
+        { 1, "--height", "height"_hash, &command_handler::parse_u32, 512u },
+        { 0, "--compute", "compute"_hash, &command_handler::parse_bool, false },
+        { 1, "--output", "output"_hash, &command_handler::parse_str }
     };
 
     u32 set_args = 0;
@@ -66,7 +70,13 @@ command_handler::command_handler(std::span<char *> arguments) {
         }
     }
 
-    // TODO: Verify if the set values are valid, and remove arguments that are mutually-exclusive
+    // Set default values if they were not specified
+    for(u32 i = 0; i < AE_ARRAY_COUNT(table); i++) {
+        if(!arguments_.contains(table[i].key)
+           && table[i].default_value.has_value()) {
+            arguments_.insert({table[i].key, *table[i].default_value});
+        }
+    }
 }
 
 bool command_handler::parse_u32(const char *str, variant &var) {

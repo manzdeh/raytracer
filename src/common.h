@@ -13,3 +13,9 @@ using u32 = std::uint32_t;
 using u64 = std::uint64_t;
 
 #define AE_ARRAY_COUNT(array) (sizeof(array) / (sizeof((array)[0])))
+
+#ifdef _WIN32
+    #define AE_FORCEINLINE __forceinline
+#else
+    #define AE_FORCEINLINE inline
+#endif
