@@ -16,6 +16,7 @@ set libs=kernel32.lib user32.lib
 set translation_units= ^
 ..\src\commands.cpp ^
 ..\src\main.cpp ^
+..\src\output_win32.cpp ^
 ..\src\raytracer.cpp ^
 ..\src\software_raytracer.cpp
 

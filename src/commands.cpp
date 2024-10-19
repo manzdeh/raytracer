@@ -45,7 +45,7 @@ command_handler::command_handler(std::span<char *> arguments) {
         { 1, "--width", "width"_hash, &command_handler::parse_u32, 512u },
         { 1, "--height", "height"_hash, &command_handler::parse_u32, 512u },
         { 0, "--compute", "compute"_hash, &command_handler::parse_bool, false },
-        { 1, "--output", "output"_hash, &command_handler::parse_str }
+        { 1, "--output", "output"_hash, &command_handler::parse_str } // TODO: Not used currently. Will be used to write out the rendered image to a path
     };
 
     u32 set_args = 0;

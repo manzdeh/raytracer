@@ -3,6 +3,7 @@
 #include "common.h"
 
 #include <span>
+#include <utility>
 
 namespace ae {
     class raytracer {
@@ -13,9 +14,9 @@ namespace ae {
         virtual void trace() = 0;
         virtual std::span<u32> get_result() const = 0;
 
-    protected:
-        bool query_resolution();
+        static std::pair<u32, u32> get_resolution();
 
+    protected:
         u32 width_ = 0;
         u32 height_ = 0;
     };
