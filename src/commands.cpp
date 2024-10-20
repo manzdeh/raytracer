@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
+#include <cstring>
 #include <optional>
 
 namespace ae {
@@ -81,7 +82,7 @@ command_handler::command_handler(std::span<char *> arguments) {
 
 bool command_handler::parse_u32(const char *str, variant &var) {
     char *endpoint;
-    u32 result = std::strtoul(str, &endpoint, 10);
+    unsigned long result = std::strtoul(str, &endpoint, 10);
 
     if(errno == ERANGE || result == ULONG_MAX) {
         var = {};
@@ -93,7 +94,7 @@ bool command_handler::parse_u32(const char *str, variant &var) {
         return false;
     }
 
-    var = result;
+    var = static_cast<u32>(result);
     return true;
 }
 
