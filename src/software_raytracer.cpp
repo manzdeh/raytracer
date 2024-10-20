@@ -1,6 +1,7 @@
 #include "software_raytracer.h"
 
 #include "ray.h"
+#include "shapes.h"
 #include "vec.h"
 
 namespace ae {
@@ -26,6 +27,7 @@ void software_raytracer::trace() {
                                0.0f);
 
     const ae::vec4f camera_pos = ae::vec4f(0.0f, 0.0f, 1.0f);
+    const ae::sphere sphere(ae::vec4f(0.0f, 0.0f, -2.0f), 1.0f);
 
     for(u32 y = 0; y < height_; y++) {
         const f32 yf = static_cast<f32>(y) + 0.5f;
@@ -34,11 +36,9 @@ void software_raytracer::trace() {
             const ae::vec4f uv = (ae::vec4f(static_cast<f32>(x) + 0.5f, yf, 0.0f) * pixel_size) - (viewport_size * 0.5f);
 
             const ae::ray ray(camera_pos, uv - camera_pos);
-            (void)ray;
+            ae::ray_hit_info hit_info;
 
-            // Perform intersection tests
-
-            framebuffer_[y * width_ + x] = 0xff000000;
+            framebuffer_[y * width_ + x] = sphere.intersects(ray, hit_info) ? 0xffff0000 : 0xff000000;
         }
     }
 }
