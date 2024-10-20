@@ -18,6 +18,7 @@ set translation_units= ^
 ..\src\main.cpp ^
 ..\src\output_win32.cpp ^
 ..\src\raytracer.cpp ^
+..\src\shapes.cpp ^
 ..\src\software_raytracer.cpp
 
 set "should_build_release="

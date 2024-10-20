@@ -44,8 +44,6 @@ output::output(std::string_view file_name) {
                                              file_size);
 
             if(file_data->view_) {
-                std::memset(file_data->view_, 0, file_size);
-
                 tga_file_header header = {
                     .image_type_ = 2,
                     .width_ = static_cast<u16>(width),

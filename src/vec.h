@@ -144,13 +144,18 @@ namespace ae {
             return ((*this) * other).sum();
         }
 
-        AE_FORCEINLINE TType magnitude() const {
+        AE_FORCEINLINE TType magnitude_squared() const {
             const vec4<TType> &v = *this;
+            return (v * v).sum();
+        }
+
+        AE_FORCEINLINE TType magnitude() const {
+            TType msquared = magnitude_squared();
 
             if constexpr(sizeof(TType) == 4) {
-                return std::sqrtf((v * v).sum());
+                return std::sqrtf(msquared);
             } else {
-                return static_cast<TType>(std::sqrt((v * v).sum()));
+                return static_cast<TType>(std::sqrt(msquared));
             }
         }
 
@@ -161,6 +166,12 @@ namespace ae {
             }
         }
 
+        AE_FORCEINLINE vec4<TType> get_normalized() const {
+            vec4<TType> v = *this;
+            v.normalize();
+            return v;
+        }
+
     private:
         union {
             struct {
@@ -169,6 +180,13 @@ namespace ae {
             TType v_[4];
         };
     };
+
+    template<typename TType>
+    AE_FORCEINLINE vec4<TType> operator*(TType s, const ae::vec4<TType> &vec) {
+        vec4<TType> v = vec;
+        v *= s;
+        return v;
+    }
 
     using vec4f = vec4<f32>;
 }

@@ -8,13 +8,13 @@
 namespace ae {
     class raytracer {
     public:
+        static std::pair<u32, u32> get_resolution();
+
         virtual ~raytracer() = default;
 
         virtual bool setup() = 0;
         virtual void trace() = 0;
         virtual std::span<u32> get_result() const = 0;
-
-        static std::pair<u32, u32> get_resolution();
 
     protected:
         u32 width_ = 0;

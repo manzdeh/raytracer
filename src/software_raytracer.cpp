@@ -1,5 +1,8 @@
 #include "software_raytracer.h"
 
+#include "ray.h"
+#include "vec.h"
+
 namespace ae {
 
 software_raytracer::software_raytracer(u32 *buffer)
@@ -16,14 +19,26 @@ bool software_raytracer::setup() {
 }
 
 void software_raytracer::trace() {
-    const f32 heightf = static_cast<f32>(height_);
+    // Test scene setup
+    const ae::vec4f viewport_size(static_cast<f32>(width_) / static_cast<f32>(height_), 1.0f, 0.0f);
+    const ae::vec4f pixel_size(viewport_size.x() / static_cast<f32>(width_),
+                               viewport_size.y() / static_cast<f32>(height_),
+                               0.0f);
+
+    const ae::vec4f camera_pos = ae::vec4f(0.0f, 0.0f, 1.0f);
 
     for(u32 y = 0; y < height_; y++) {
-        const f32 yfloat = static_cast<f32>(y) / heightf;
-        const u32 color = (static_cast<u32>(255.0f * yfloat) << 16) | (0xff << 24);
+        const f32 yf = static_cast<f32>(y) + 0.5f;
 
         for(u32 x = 0; x < width_; x++) {
-            framebuffer_[y * width_ + x] = color;
+            const ae::vec4f uv = (ae::vec4f(static_cast<f32>(x) + 0.5f, yf, 0.0f) * pixel_size) - (viewport_size * 0.5f);
+
+            const ae::ray ray(camera_pos, uv - camera_pos);
+            (void)ray;
+
+            // Perform intersection tests
+
+            framebuffer_[y * width_ + x] = 0xff000000;
         }
     }
 }
