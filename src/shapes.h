@@ -12,7 +12,7 @@ namespace ae {
         sphere() = default;
         sphere(const ae::vec4f &center, f32 radius);
 
-        bool intersects(const ae::ray &ray, ray_hit_info &out_hit_info) const;
+        bool intersects(const ae::ray &ray, ae::ray_hit_info &out_hit_info) const;
 
     private:
         ae::vec4f center_;

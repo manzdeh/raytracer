@@ -14,6 +14,7 @@ set linker_flags=/nologo /INCREMENTAL:NO /SUBSYSTEM:CONSOLE
 set libs=kernel32.lib user32.lib
 
 set translation_units= ^
+..\src\color.cpp ^
 ..\src\commands.cpp ^
 ..\src\main.cpp ^
 ..\src\output_win32.cpp ^
