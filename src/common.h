@@ -18,7 +18,7 @@ using f64 = double;
 
 #define AE_ARRAY_COUNT(array) (sizeof(array) / (sizeof((array)[0])))
 
-#ifdef _WIN32
+#ifdef AE_PLATFORM_WIN32
     #define AE_FORCEINLINE __forceinline
 #else
     #define AE_FORCEINLINE inline

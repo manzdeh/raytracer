@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef _WIN32
+#ifdef AE_PLATFORM_WIN32
 
 #include "common.h"
 
@@ -10,4 +10,4 @@
 
 #include <Windows.h>
 
-#endif // _WIN32
+#endif // AE_PLATFORM_WIN32
