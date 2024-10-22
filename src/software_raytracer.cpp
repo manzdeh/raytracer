@@ -1,6 +1,7 @@
 #include "software_raytracer.h"
 
 #include "color.h"
+#include "math.h"
 #include "ray.h"
 #include "shapes.h"
 #include "vec.h"
@@ -22,8 +23,8 @@ bool software_raytracer::setup() {
 
 void software_raytracer::trace() {
     // Test scene setup
-    const ae::hsv background0 = ae::color(AE_RGB(0x4d, 0xa6, 0xf0)).to_hsv();
-    const ae::hsv background1 = ae::color(1.0f, 1.0f, 1.0f).to_hsv();
+    const ae::color background0(1.0f, 1.0f, 1.0f);
+    const ae::color background1(AE_RGB(0x4d, 0xa6, 0xf0));
 
     const ae::vec4f viewport_size(static_cast<f32>(width_) / static_cast<f32>(height_), 1.0f, 0.0f);
     const ae::vec4f pixel_size(viewport_size.x() / static_cast<f32>(width_),
@@ -37,8 +38,9 @@ void software_raytracer::trace() {
         const f32 yf = static_cast<f32>(y);
         const f32 t = yf / static_cast<f32>(height_);
 
-        const ae::hsv background = background1.lerp(background0, t);
-        const u32 background_argb = (0xff << 24) | ae::color(background).get_argb32();
+        const u32 background = ae::color(ae::lerp(t, background0.r_, background1.r_),
+                                         ae::lerp(t, background0.g_, background1.g_),
+                                         ae::lerp(t, background0.b_, background1.b_)).get_argb32();
 
         for(u32 x = 0; x < width_; x++) {
             const ae::vec4f uv = (ae::vec4f(static_cast<f32>(x) + 0.5f, yf + 0.5f, 0.0f) * pixel_size) - (viewport_size * 0.5f);
@@ -46,7 +48,7 @@ void software_raytracer::trace() {
             const ae::ray ray(camera_pos, uv - camera_pos);
             ae::ray_hit_info hit_info;
 
-            framebuffer_[y * width_ + x] = sphere.intersects(ray, hit_info) ? 0xffff0000 : background_argb;
+            framebuffer_[y * width_ + x] = sphere.intersects(ray, hit_info) ? 0xffff0000 : background;
         }
     }
 }

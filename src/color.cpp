@@ -81,7 +81,7 @@ color::color(const hsv &hsv_color) {
 }
 
 u32 color::get_argb32() const {
-    // TODO: Need to check and measure if this is faster when using SSE
+    // TODO: Need to check and profile if this is faster when using SSE
     // (might be slower due to data conversions between vector registers and general-purpose ones)
 
     return

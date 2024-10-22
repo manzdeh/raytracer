@@ -1,6 +1,7 @@
 #include "commands.h"
 #include "output.h"
 #include "software_raytracer.h"
+#include "system.h"
 #include "vulkan_raytracer.h"
 
 #include <memory>
@@ -8,6 +9,8 @@
 static void run_raytracer(void *buffer);
 
 int main(int argc, char *argv[]) {
+    ae::system_init();
+
     ae::command_handler::create(std::span(argv, argc));
 
     std::unique_ptr<ae::output> output =

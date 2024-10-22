@@ -8,7 +8,7 @@ set outputexe="%outputname%.exe"
 
 echo.
 
-set defines=/DNOMINMAX /DUNICODE /D_UNICODE /D_CRT_SECURE_NO_WARNINGS
+set defines=/DNOMINMAX /DUNICODE /D_UNICODE /D_CRT_SECURE_NO_WARNINGS /DAE_PLATFORM_WIN32
 set compiler_flags=/nologo /std:c++20 /FC /Zc:preprocessor /EHsc /GR- /WX /W4 /w44062 /wd4201 /wd4324
 set linker_flags=/nologo /INCREMENTAL:NO /SUBSYSTEM:CONSOLE
 set libs=kernel32.lib user32.lib
@@ -18,9 +18,11 @@ set translation_units= ^
 ..\src\commands.cpp ^
 ..\src\main.cpp ^
 ..\src\output_win32.cpp ^
+..\src\random.cpp ^
 ..\src\raytracer.cpp ^
 ..\src\shapes.cpp ^
-..\src\software_raytracer.cpp
+..\src\software_raytracer.cpp ^
+..\src\system.cpp
 
 set "should_build_release="
 
