@@ -40,6 +40,7 @@ output::~output() {
     munmap(memory_mapped_file->mapping_, file_size());
     close(memory_mapped_file->fd_);
 
+    delete memory_mapped_file;
     impl_ = nullptr;
 }
 
