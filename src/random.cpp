@@ -2,10 +2,11 @@
 
 #ifdef AE_PLATFORM_WIN32
 #include "common_win32.h"
+#elif defined(AE_PLATFORM_LINUX)
+#include "common_linux.h"
 #endif
 #include "system.h"
 
-#include <intrin.h>
 #include <limits>
 #include <time.h>
 

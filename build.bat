@@ -17,6 +17,7 @@ set translation_units= ^
 ..\src\color.cpp ^
 ..\src\commands.cpp ^
 ..\src\main.cpp ^
+..\src\output.cpp ^
 ..\src\output_win32.cpp ^
 ..\src\random.cpp ^
 ..\src\raytracer.cpp ^

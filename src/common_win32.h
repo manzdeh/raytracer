@@ -9,5 +9,6 @@
 #endif
 
 #include <Windows.h>
+#include <intrin.h>
 
 #endif // AE_PLATFORM_WIN32

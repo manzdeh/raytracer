@@ -1,10 +1,13 @@
 #include "system.h"
 
-#include <intrin.h>
+#ifdef AE_PLATFORM_WIN32
+#include "common_win32.h"
+#elif defined(AE_PLATFORM_LINUX)
+#include "common_linux.h"
+#endif
 
 #define X(item) bool item : 1;
 static struct {
-    bool initialized : 1;
     CPU_FEATURE_LIST
 } system_supported_feature_bits;
 #undef X
@@ -12,17 +15,29 @@ static struct {
 namespace ae {
 
 void system_init() {
-    if(system_supported_feature_bits.initialized) {
+    static volatile bool initialized = false;
+
+    if(initialized) {
         return;
     }
 
+    const int leaf = 1;
     int cpu_info[4];
-    __cpuid(cpu_info, 1);
+
+#ifdef AE_PLATFORM_WIN32
+    __cpuid(cpu_info, leaf);
+#elif defined(AE_PLATFORM_LINUX)
+    asm volatile(
+        "cpuid;"
+        : "=a"(cpu_info[0]), "=b"(cpu_info[1]), "=c"(cpu_info[2]), "=d"(cpu_info[3])
+        : "0"(leaf)
+    );
+#endif
 
     system_supported_feature_bits.sse2 = cpu_info[3] & (1 << 26);
     system_supported_feature_bits.rdrand = cpu_info[2] & (1 << 30);
 
-    system_supported_feature_bits.initialized = true;
+    initialized = true;
 }
 
 bool system_has_feature(cpu_feature feature) {

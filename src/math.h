@@ -22,7 +22,7 @@ namespace ae {
     }
 
     template<typename TType>
-    static AE_FORCEINLINE TType saturate(TType t, TType v0, TType v1) {
+    static AE_FORCEINLINE TType saturate(TType t) {
         return clamp(t, static_cast<TType>(0), static_cast<TType>(1));
     }
 

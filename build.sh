@@ -8,8 +8,9 @@ echo Compiling DEBUG build...
 
 compiler_flags="-std=c++20 -Werror -Wall -Wunused-parameter \
     -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-anonymous-struct -Wno-nested-anon-types \
-    -O0 -g -pedantic"
-defines="-D_POSIX_C_SOURCE=200809L"
+    -O0 -g -pedantic \
+    -masm=intel -mrdrnd"
+defines="-D_POSIX_C_SOURCE=200809L -DAE_PLATFORM_LINUX"
 libs="-lstdc++ -lc -lm"
 
 translation_units=$(find . -name "*.cpp" ! -name "*win32.cpp")

@@ -12,6 +12,9 @@ namespace ae {
 
         void * get_buffer();
 
+        static size_t file_size();
+        static void write_default_header(void *buffer);
+
     private:
 #pragma pack(push, 1)
         struct tga_file_header {
