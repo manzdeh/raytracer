@@ -144,6 +144,10 @@ namespace ae {
             return ((*this) * other).sum();
         }
 
+        AE_FORCEINLINE TType dot3(const vec4<TType> &other) const {
+            return x_ * other.x() + y_ * other.y() + z_ * other.z();
+        }
+
         AE_FORCEINLINE TType magnitude_squared() const {
             const vec4<TType> &v = *this;
             return (v * v).sum();

@@ -6,6 +6,8 @@
 #include "shapes.h"
 #include "vec.h"
 
+#include <utility>
+
 namespace ae {
 
 software_raytracer::software_raytracer(u32 *buffer)
@@ -48,7 +50,20 @@ void software_raytracer::trace() {
             const ae::ray ray(camera_pos, uv - camera_pos);
             ae::ray_hit_info hit_info;
 
-            framebuffer_[y * width_ + x] = sphere.intersects(ray, hit_info) ? 0xffff0000 : background;
+            u32 *pixel = &framebuffer_[y * width_ + x];
+
+            if(sphere.intersects(ray, hit_info)) {
+                const std::pair<f32, f32> input{-1.0f, 1.0f};
+                const std::pair<f32, f32> output{0.0f, 1.0f};
+
+                const color c(ae::remap(hit_info.normal_.x(), input, output),
+                        ae::remap(hit_info.normal_.y(), input, output),
+                        ae::remap(hit_info.normal_.z(), input, output));
+
+                *pixel = c.get_argb32();
+            } else {
+                *pixel = background;
+            }
         }
     }
 }
