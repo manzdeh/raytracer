@@ -9,7 +9,7 @@ echo Compiling DEBUG build...
 compiler_flags="-std=c++20 -Werror -Wall -Wunused-parameter \
     -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-anonymous-struct -Wno-nested-anon-types \
     -O0 -g -pedantic \
-    -masm=intel -mrdrnd"
+    -m64 -masm=intel -mrdrnd"
 defines="-D_POSIX_C_SOURCE=200809L -DAE_PLATFORM_LINUX"
 libs="-lstdc++ -lc -lm"
 

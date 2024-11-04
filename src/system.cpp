@@ -6,6 +6,8 @@
 #include "common_linux.h"
 #endif
 
+#include <cassert>
+
 #define X(item) bool item : 1;
 static struct {
     CPU_FEATURE_LIST
@@ -17,7 +19,7 @@ namespace ae {
 void system_init() {
     static volatile bool initialized = false;
 
-    if(initialized) {
+    if(initialized) [[unlikely]] {
         return;
     }
 
@@ -35,6 +37,8 @@ void system_init() {
 #endif
 
     system_supported_feature_bits.sse2 = cpu_info[3] & (1 << 26);
+    assert(system_supported_feature_bits.sse2); // We always expect SSE2 to be present, because we only support x86-64
+
     system_supported_feature_bits.rdrand = cpu_info[2] & (1 << 30);
 
     initialized = true;

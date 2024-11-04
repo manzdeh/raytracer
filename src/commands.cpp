@@ -1,5 +1,8 @@
 #include "commands.h"
 
+#include "math.h"
+#include "raytracer.h"
+
 #include <cassert>
 #include <cerrno>
 #include <climits>
@@ -25,14 +28,12 @@ void command_handler::destroy() {
     delete instance;
 }
 
+bool command_handler::has(ae::strhash argument) const {
+    return arguments_.contains(argument);
+}
+
 command_handler::variant command_handler::value(ae::strhash argument) const {
-    auto it = arguments_.find(argument);
-
-    if(it == arguments_.end()) {
-        return command_handler::variant{};
-    }
-
-    return it->second;
+    return has(argument) ? arguments_.at(argument) : command_handler::variant{};
 }
 
 command_handler::command_handler(std::span<char *> arguments) {
@@ -78,6 +79,17 @@ command_handler::command_handler(std::span<char *> arguments) {
             arguments_.insert({table[i].key, *table[i].default_value});
         }
     }
+
+    auto align_size = [](command_handler::variant &val) {
+        const u32 alignment = ae::raytracer::tile_size;
+        u32 current = std::get<u32>(val);
+
+        val = ae::max(static_cast<u32>((current + (alignment - 1)) & ~(alignment - 1)),
+                      alignment);
+    };
+
+    align_size(arguments_.at("width"_hash));
+    align_size(arguments_.at("height"_hash));
 }
 
 bool command_handler::parse_u32(const char *str, variant &var) {

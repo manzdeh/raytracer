@@ -40,6 +40,9 @@ u32 random::generate_seed() const {
 #ifdef AE_PLATFORM_WIN32
         ^ static_cast<u32>(GetCurrentProcessId())
         ^ static_cast<u32>(GetCurrentThreadId())
+#elif defined(AE_PLATFORM_LINUX)
+        ^ static_cast<u32>(getpid())
+        ^ static_cast<u32>(gettid())
 #endif
         ;
 }

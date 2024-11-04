@@ -24,15 +24,25 @@ bool software_raytracer::setup() {
 }
 
 void software_raytracer::trace() {
-    // Test scene setup
     const ae::color background0(1.0f, 1.0f, 1.0f);
     const ae::color background1(AE_RGB(0x4d, 0xa6, 0xf0));
 
-    const ae::vec4f viewport_size(static_cast<f32>(width_) / static_cast<f32>(height_), 1.0f, 0.0f);
-    const ae::vec4f pixel_size(viewport_size.x() / static_cast<f32>(width_),
-                               viewport_size.y() / static_cast<f32>(height_),
+    f32 w, h;
+
+    if(width_ > height_) {
+        w = static_cast<f32>(width_) / static_cast<f32>(height_);
+        h = 1.0f;
+    } else {
+        w = 1.0f;
+        h = static_cast<f32>(height_) / static_cast<f32>(width_);
+    }
+
+    const ae::vec4f viewport_size(w, h, 0.0f);
+    const ae::vec4f pixel_size(viewport_size.x_ / static_cast<f32>(width_),
+                               viewport_size.y_ / static_cast<f32>(height_),
                                0.0f);
 
+    // Test scene setup
     const ae::vec4f camera_pos = ae::vec4f(0.0f, 0.0f, 1.0f);
     const ae::sphere sphere(ae::vec4f(0.0f, 0.0f, -2.0f), 1.0f);
 
@@ -45,45 +55,23 @@ void software_raytracer::trace() {
                                          ae::lerp(t, background0.b_, background1.b_)).get_argb32();
 
         for(u32 x = 0; x < width_; x++) {
-            const ae::vec4f uvs[] = {
-                (ae::vec4f(static_cast<f32>(x) - 0.25f, yf - 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f),
-                (ae::vec4f(static_cast<f32>(x) - 0.25f, yf + 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f),
-                (ae::vec4f(static_cast<f32>(x) + 0.25f, yf - 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f),
-                (ae::vec4f(static_cast<f32>(x) + 0.25f, yf + 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f)
-            };
+            const ae::vec4f uv = (ae::vec4f(static_cast<f32>(x) + 0.5f, yf + 0.5f, 0.0f) * pixel_size)
+                - (viewport_size * ae::vec4f(0.5f, 0.5f, 1.0f));
 
-            bool hit_any = false;
-
-            color c{};
-
-            for(u32 r = 0; r < AE_ARRAY_COUNT(uvs); r++) {
-                const ae::ray ray(camera_pos, uvs[r] - camera_pos);
-                ae::ray_hit_info hit_info;
-
-                if(sphere.intersects(ray, hit_info)) {
-                    const std::pair<f32, f32> input{-1.0f, 1.0f};
-                    const std::pair<f32, f32> output{0.0f, 1.0f};
-
-                    c.a_ += 1.0f;
-                    c.r_ += ae::remap(hit_info.normal_.x(), input, output);
-                    c.g_ += ae::remap(hit_info.normal_.y(), input, output);
-                    c.b_ += ae::remap(hit_info.normal_.z(), input, output);
-
-                    hit_any = true;
-                }
-            }
+            const ae::ray ray(camera_pos, uv - camera_pos);
+            ae::ray_hit_info hit_info;
 
             u32 *pixel = &framebuffer_[y * width_ + x];
 
-            if(hit_any) {
-                f32 scale = 1.0f / static_cast<f32>(AE_ARRAY_COUNT(uvs));
+            if(sphere.intersects(ray, hit_info)) {
+                const std::pair<f32, f32> input{-1.0f, 1.0f};
+                const std::pair<f32, f32> output{0.0f, 1.0f};
 
-                c.a_ *= scale;
-                c.r_ *= scale;
-                c.g_ *= scale;
-                c.b_ *= scale;
+                const color c(ae::remap(hit_info.normal_.x_, input, output),
+                        ae::remap(hit_info.normal_.y_, input, output),
+                        ae::remap(hit_info.normal_.z_, input, output));
 
-                *pixel = color(color(background).to_hsv().lerp(c.to_hsv(), c.a_)).get_argb32();
+                *pixel = c.get_argb32();
             } else {
                 *pixel = background;
             }

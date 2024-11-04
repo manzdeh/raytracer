@@ -18,6 +18,7 @@ namespace ae {
         static void create(std::span<char *> arguments);
         static void destroy();
 
+        bool has(ae::strhash argument) const;
         variant value(ae::strhash argument) const;
 
     private:
