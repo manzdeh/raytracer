@@ -28,26 +28,38 @@ output::output(std::string_view file_name) {
                                             memory_mapped_file->fd_,
                                             0);
 
-        write_default_header(memory_mapped_file->mapping_);
+        if(memory_mapped_file->mapping_) {
+            write_default_header(memory_mapped_file->mapping_);
+        }
 
         impl_ = memory_mapped_file;
     }
 }
 
 output::~output() {
-    linux_memory_mapped_file *memory_mapped_file = reinterpret_cast<linux_memory_mapped_file *>(impl_);
+    if(impl_) {
+        linux_memory_mapped_file *memory_mapped_file = reinterpret_cast<linux_memory_mapped_file *>(impl_);
 
-    munmap(memory_mapped_file->mapping_, file_size());
-    close(memory_mapped_file->fd_);
+        if(memory_mapped_file->mapping_) {
+            munmap(memory_mapped_file->mapping_, file_size());
+        }
 
-    delete memory_mapped_file;
-    impl_ = nullptr;
+        if(memory_mapped_file->fd_ != -1) {
+            close(memory_mapped_file->fd_);
+        }
+
+        delete memory_mapped_file;
+    }
 }
 
 void * output::get_buffer() {
-    linux_memory_mapped_file *memory_mapped_file = reinterpret_cast<linux_memory_mapped_file *>(impl_);
-    return reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(memory_mapped_file->mapping_)
-                                    + sizeof(tga_file_header));
+    if(impl_) {
+        linux_memory_mapped_file *memory_mapped_file = reinterpret_cast<linux_memory_mapped_file *>(impl_);
+        return reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(memory_mapped_file->mapping_)
+                                        + sizeof(tga_file_header));
+    }
+
+    return nullptr;
 }
 
 }

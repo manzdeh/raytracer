@@ -10,6 +10,7 @@ namespace ae {
         f32 h_;
         f32 s_;
         f32 v_;
+        f32 a_;
     };
 
     class color {

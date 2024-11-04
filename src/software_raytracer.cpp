@@ -45,22 +45,45 @@ void software_raytracer::trace() {
                                          ae::lerp(t, background0.b_, background1.b_)).get_argb32();
 
         for(u32 x = 0; x < width_; x++) {
-            const ae::vec4f uv = (ae::vec4f(static_cast<f32>(x) + 0.5f, yf + 0.5f, 0.0f) * pixel_size) - (viewport_size * 0.5f);
+            const ae::vec4f uvs[] = {
+                (ae::vec4f(static_cast<f32>(x) - 0.25f, yf - 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f),
+                (ae::vec4f(static_cast<f32>(x) - 0.25f, yf + 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f),
+                (ae::vec4f(static_cast<f32>(x) + 0.25f, yf - 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f),
+                (ae::vec4f(static_cast<f32>(x) + 0.25f, yf + 0.25f, 0.0f) * pixel_size) - (viewport_size * 0.5f)
+            };
 
-            const ae::ray ray(camera_pos, uv - camera_pos);
-            ae::ray_hit_info hit_info;
+            bool hit_any = false;
+
+            color c{};
+
+            for(u32 r = 0; r < AE_ARRAY_COUNT(uvs); r++) {
+                const ae::ray ray(camera_pos, uvs[r] - camera_pos);
+                ae::ray_hit_info hit_info;
+
+                if(sphere.intersects(ray, hit_info)) {
+                    const std::pair<f32, f32> input{-1.0f, 1.0f};
+                    const std::pair<f32, f32> output{0.0f, 1.0f};
+
+                    c.a_ += 1.0f;
+                    c.r_ += ae::remap(hit_info.normal_.x(), input, output);
+                    c.g_ += ae::remap(hit_info.normal_.y(), input, output);
+                    c.b_ += ae::remap(hit_info.normal_.z(), input, output);
+
+                    hit_any = true;
+                }
+            }
 
             u32 *pixel = &framebuffer_[y * width_ + x];
 
-            if(sphere.intersects(ray, hit_info)) {
-                const std::pair<f32, f32> input{-1.0f, 1.0f};
-                const std::pair<f32, f32> output{0.0f, 1.0f};
+            if(hit_any) {
+                f32 scale = 1.0f / static_cast<f32>(AE_ARRAY_COUNT(uvs));
 
-                const color c(ae::remap(hit_info.normal_.x(), input, output),
-                        ae::remap(hit_info.normal_.y(), input, output),
-                        ae::remap(hit_info.normal_.z(), input, output));
+                c.a_ *= scale;
+                c.r_ *= scale;
+                c.g_ *= scale;
+                c.b_ *= scale;
 
-                *pixel = c.get_argb32();
+                *pixel = color(color(background).to_hsv().lerp(c.to_hsv(), c.a_)).get_argb32();
             } else {
                 *pixel = background;
             }

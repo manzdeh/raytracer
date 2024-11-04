@@ -5,10 +5,21 @@
 namespace ae {
 
 hsv hsv::lerp(const hsv &other, f32 t) const {
+    f32 h0 = h_, h1 = other.h_;
+
+    if(std::fabs(h1 - h0) > 180.0f) {
+        if(h1 > h0) {
+            h0 += 360.0f;
+        } else {
+            h1 += 360.0f;
+        }
+    }
+
     return {
-        .h_ = ae::lerp(h_ , other.h_, t),
-        .s_ = ae::lerp(s_ , other.s_, t),
-        .v_ = ae::lerp(v_ , other.v_, t),
+        .h_ = std::fmod(ae::lerp(t, h0 , h1), 360.0f),
+        .s_ = ae::lerp(t, s_ , other.s_),
+        .v_ = ae::lerp(t, v_ , other.v_),
+        .a_ = a_
     };
 }
 
@@ -25,6 +36,8 @@ color::color(u32 argb)
     , b_(static_cast<f32>(argb & 0xff) / 255.0f) {}
 
 color::color(const hsv &hsv_color) {
+    a_ = hsv_color.a_;
+
     if(hsv_color.s_ == 0.0f) {
         r_ = hsv_color.v_;
         g_ = hsv_color.v_;
@@ -98,7 +111,7 @@ hsv color::to_hsv() const {
     f32 diff = max - min;
 
     if(diff == 0.0f) {
-        return { .v_ = max };
+        return { .v_ = max, .a_ = a_ };
     }
 
     f32 h = 0.0f;
@@ -118,7 +131,8 @@ hsv color::to_hsv() const {
     return {
         .h_ = h,
         .s_ = diff / max,
-        .v_ = max
+        .v_ = max,
+        .a_ = a_
     };
 }
 
