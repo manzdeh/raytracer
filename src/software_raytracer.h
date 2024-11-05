@@ -10,7 +10,6 @@ namespace ae {
 
         bool setup() override;
         void trace() override;
-        std::span<u32> get_result() const override;
 
     private:
         u32 *framebuffer_ = nullptr;

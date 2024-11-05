@@ -12,6 +12,5 @@ namespace ae {
 
         bool setup() override { return false; }
         void trace() override {}
-        std::span<u32> get_result() const override { return {}; }
     };
 }

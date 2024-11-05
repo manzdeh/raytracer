@@ -16,7 +16,6 @@ namespace ae {
 
         virtual bool setup() = 0;
         virtual void trace() = 0;
-        virtual std::span<u32> get_result() const = 0;
 
     protected:
         u32 width_ = 0;
