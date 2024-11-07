@@ -8,14 +8,29 @@
 
 #include <utility>
 
-// TODO: Temporary threaded test
+// TODO: Abstract some of this away once Windows is also multithreaded
 #ifdef AE_PLATFORM_LINUX
 #include "common_linux.h"
+
 #include <pthread.h>
 
-static pthread_t test_thread; // TODO: Not destroyed yet
-static pthread_mutex_t test_mutex = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t test_condition_variable = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t queue_ready_cv = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t next_tile_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+struct ae_pthread_locker {
+    ae_pthread_locker(pthread_mutex_t *mutex)
+        : mutex_(mutex) {
+        pthread_mutex_lock(mutex_);
+    }
+
+    ~ae_pthread_locker() {
+        pthread_mutex_unlock(mutex_);
+    }
+
+    pthread_mutex_t *mutex_;
+};
+
 #endif
 
 namespace ae {
@@ -70,58 +85,72 @@ void software_raytracer::trace() {
         }
     };
 
-#ifdef AE_PLATFORM_LINUX
-    // TODO: Not used yet, first a test with a single thread
+    auto single_threaded_routine = [this, &copy_to_framebuffer]() {
+        const u32 count_i = width_ / ae::raytracer::tile_size;
+        const u32 count_j = height_ / ae::raytracer::tile_size;
+
+        tile_data tile;
+
+        for(u32 j = 0; j < count_j; j++) {
+            tile.col = j;
+
+            for(u32 i = 0; i < count_i; i++) {
+                tile.row = i;
+                trace_tile(tile);
+                copy_to_framebuffer(tile);
+            }
+        }
+    };
+
+#ifdef AE_PLATFORM_WIN32
+    // TODO: Add multithreading support for Windows.
+    single_threaded_routine();
+
+#elif defined(AE_PLATFORM_LINUX)
     long thread_count = sysconf(_SC_NPROCESSORS_ONLN);
     if(thread_count != -1) {
-        thread_count = ae::max<long>(0, thread_count - 1);
+        if(thread_count = ae::max<long>(0, thread_count - 1); thread_count > 0) {
+            pthread_attr_t attrib;
+            pthread_attr_init(&attrib);
+            pthread_attr_setdetachstate(&attrib, PTHREAD_CREATE_DETACHED);
+
+            for(u32 i = 0; i < thread_count; i++) {
+                // These threads don't need to be destroyed/joined manually,
+                // because they're created in a detached state
+                pthread_t thread;
+                pthread_create(&thread,
+                               &attrib,
+                               software_raytracer::thread_func,
+                               this);
+            }
+
+            pthread_attr_destroy(&attrib);
+        }
     }
 
-    pthread_attr_t attrib;
-    pthread_attr_init(&attrib);
-    pthread_attr_setdetachstate(&attrib, PTHREAD_CREATE_DETACHED);
+    if(thread_count > 0) {
+        for(;;) {
+            tile_data tile;
 
-    pthread_create(&test_thread,
-                   &attrib,
-                   software_raytracer::thread_func,
-                   this);
+            {
+                ae_pthread_locker lock(&queue_mutex);
 
-    pthread_attr_destroy(&attrib);
-#endif
+                while(tile_queue_.empty() && !finished_) {
+                    pthread_cond_wait(&queue_ready_cv, &queue_mutex);
+                }
 
-#if 0
-    const u32 count_i = width_ / ae::raytracer::tile_size;
-    const u32 count_j = height_ / ae::raytracer::tile_size;
+                if(tile_queue_.empty() && finished_) {
+                    break;
+                }
 
-    tile_data tile;
+                tile = tile_queue_.front();
+                tile_queue_.pop();
+            }
 
-    for(u32 j = 0; j < count_j; j++) {
-        tile.col = j;
-
-        for(u32 i = 0; i < count_i; i++) {
-            tile.row = i;
-            trace_tile(tile);
             copy_to_framebuffer(tile);
         }
-    }
-
-#else
-
-    for(;;) {
-        pthread_mutex_lock(&test_mutex);
-        while(tile_queue_.empty() && !finished_) {
-            pthread_cond_wait(&test_condition_variable, &test_mutex);
-        }
-
-        if(tile_queue_.empty() && finished_) {
-            pthread_mutex_unlock(&test_mutex);
-            break;
-        }
-
-        copy_to_framebuffer(tile_queue_.front());
-        tile_queue_.pop();
-
-        pthread_mutex_unlock(&test_mutex);
+    } else {
+        single_threaded_routine();
     }
 
 #endif
@@ -165,6 +194,8 @@ void software_raytracer::trace_tile(tile_data &tile) {
 }
 
 bool software_raytracer::get_next_tile(tile_data &tile) {
+    ae_pthread_locker lock{&next_tile_mutex};
+
     if(current_col_ < col_count_) {
         tile.row = current_row_;
         tile.col = current_col_;
@@ -183,7 +214,9 @@ bool software_raytracer::get_next_tile(tile_data &tile) {
     return false;
 }
 
-void * software_raytracer::thread_func(void *data) {
+void * software_raytracer::thread_func([[maybe_unused]] void *data) {
+#ifdef AE_PLATFORM_LINUX
+    // TODO: Multithreading is only available on Linux for now
     software_raytracer *rt = static_cast<software_raytracer *>(data);
 
     tile_data tile;
@@ -191,15 +224,16 @@ void * software_raytracer::thread_func(void *data) {
     while(rt->get_next_tile(tile)) {
         rt->trace_tile(tile);
 
-        pthread_mutex_lock(&test_mutex);
+        pthread_mutex_lock(&queue_mutex);
 
         rt->tile_queue_.push(std::move(tile));
 
-        pthread_cond_signal(&test_condition_variable);
-        pthread_mutex_unlock(&test_mutex);
+        pthread_cond_signal(&queue_ready_cv);
+        pthread_mutex_unlock(&queue_mutex);
     }
+#endif
 
-    return 0;
+    return nullptr;
 }
 
 }
