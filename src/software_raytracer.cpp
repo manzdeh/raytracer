@@ -108,6 +108,7 @@ void software_raytracer::trace() {
 
 #elif defined(AE_PLATFORM_LINUX)
     long thread_count = sysconf(_SC_NPROCESSORS_ONLN);
+
     if(thread_count != -1) {
         if(thread_count = ae::max<long>(0, thread_count - 1); thread_count > 0) {
             pthread_attr_t attrib;

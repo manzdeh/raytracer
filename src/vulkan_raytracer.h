@@ -2,8 +2,6 @@
 
 #include "raytracer.h"
 
-// TODO: Stubbed out for now
-
 namespace ae {
     class vulkan_raytracer final : public raytracer {
     public:
