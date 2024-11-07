@@ -7,6 +7,9 @@ namespace {
     u32 raytracer_height = 0;
 }
 
+ae::color ae::raytracer::background0 = ae::color(1.0f, 1.0f, 1.0f);
+ae::color ae::raytracer::background1 = ae::color(AE_RGB(0x4d, 0xa6, 0xf0));
+
 std::pair<u32, u32> ae::raytracer::get_resolution() {
     if(raytracer_width > 0 && raytracer_height > 0) {
         return std::make_pair(raytracer_width, raytracer_height);
