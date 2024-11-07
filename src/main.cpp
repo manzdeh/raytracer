@@ -36,7 +36,6 @@ void run_raytracer(void *buffer) {
     const ae::command_handler &cmdhandler = ae::command_handler::get();
 
     if(cmdhandler.has("compute"_hash) && std::get<bool>(cmdhandler.value("compute"_hash))) {
-        auto v = ae::command_handler::get().value("compute"_hash);
         raytracer = std::make_unique<ae::vulkan_raytracer>();
         success = raytracer->setup();
 
