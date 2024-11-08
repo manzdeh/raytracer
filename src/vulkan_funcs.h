@@ -9,12 +9,26 @@
 
 #define AE_VULKAN_INSTANCE_FUNCS \
     X(vkGetDeviceProcAddr) \
-    X(vkDestroyInstance)
+    X(vkDestroyInstance) \
+    X(vkEnumeratePhysicalDevices) \
+    X(vkGetPhysicalDeviceQueueFamilyProperties) \
+    X(vkCreateDevice)
 
 #define AE_VULKAN_DEVICE_FUNCS \
     X(vkDestroyDevice) \
     X(vkGetDeviceQueue) \
-    X(vkDeviceWaitIdle)
+    X(vkDeviceWaitIdle) \
+    X(vkCreateShaderModule) \
+    X(vkDestroyShaderModule) \
+    X(vkCreatePipelineLayout) \
+    X(vkDestroyPipelineLayout) \
+    X(vkCreateComputePipelines) \
+    X(vkDestroyPipeline) \
+    X(vkCreateCommandPool) \
+    X(vkDestroyCommandPool) \
+    X(vkAllocateCommandBuffers) \
+    X(vkFreeCommandBuffers) \
+    X(vkCmdDispatch)
 
 inline PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 

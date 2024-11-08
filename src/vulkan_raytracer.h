@@ -10,7 +10,10 @@ namespace ae {
         static constexpr u32 req_major_version = 1;
         static constexpr u32 req_minor_version = 0;
 
-        vulkan_raytracer();
+        static bool init();
+        static void terminate();
+
+        vulkan_raytracer() = default;
         ~vulkan_raytracer() override;
 
         bool setup() override;
@@ -19,10 +22,20 @@ namespace ae {
     private:
         bool create_instance();
         bool create_device();
+        bool create_pipeline();
+        bool create_command_handles();
         bool load_functions();
 
         static void * lib_;
         VkInstance instance_ = VK_NULL_HANDLE;
+        VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
         VkDevice device_ = VK_NULL_HANDLE;
+        VkShaderModule compute_shader_module_ = VK_NULL_HANDLE;
+        VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
+        VkPipeline pipeline_ = VK_NULL_HANDLE;
+        VkCommandPool command_pool_ = VK_NULL_HANDLE;
+        VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
+
+        u32 queue_family_index_ = static_cast<u32>(-1);
     };
 }

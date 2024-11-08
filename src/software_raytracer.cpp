@@ -227,7 +227,7 @@ void * software_raytracer::thread_func([[maybe_unused]] void *data) {
 
         pthread_mutex_lock(&queue_mutex);
 
-        rt->tile_queue_.push(std::move(tile));
+        rt->tile_queue_.push(tile);
 
         pthread_cond_signal(&queue_ready_cv);
         pthread_mutex_unlock(&queue_mutex);
