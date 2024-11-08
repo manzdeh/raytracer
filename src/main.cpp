@@ -39,7 +39,7 @@ void run_raytracer(void *buffer) {
        && std::get<bool>(cmdhandler.value("compute"_hash))
        && ae::vulkan_raytracer::init()) {
 
-        raytracer = std::make_unique<ae::vulkan_raytracer>();
+        raytracer = std::make_unique<ae::vulkan_raytracer>(reinterpret_cast<u32 *>(buffer));
         success = raytracer->setup();
 
         if(!success) {

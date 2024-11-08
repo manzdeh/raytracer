@@ -19,6 +19,12 @@ namespace ae {
 
         virtual bool setup() = 0;
         virtual void trace() = 0;
+
+    protected:
+        raytracer() = default;
+        raytracer(u32 *buffer);
+
+        u32 *framebuffer_ = nullptr;
     };
 
     static_assert(raytracer::tile_size > 0 && ((raytracer::tile_size & (raytracer::tile_size - 1)) == 0),

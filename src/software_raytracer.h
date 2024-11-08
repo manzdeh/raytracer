@@ -16,7 +16,6 @@ namespace ae {
 
     class software_raytracer final : public raytracer {
     public:
-        software_raytracer() = default;
         software_raytracer(u32 *buffer);
 
         bool setup() override;
@@ -28,8 +27,6 @@ namespace ae {
         static void * thread_func(void *data);
 
         std::queue<tile_data> tile_queue_;
-
-        u32 *framebuffer_ = nullptr;
 
         ae::vec4f viewport_size_;
         ae::vec4f pixel_size_;

@@ -13,17 +13,21 @@ namespace ae {
         static bool init();
         static void terminate();
 
-        vulkan_raytracer() = default;
+        vulkan_raytracer(u32 *buffer);
         ~vulkan_raytracer() override;
 
         bool setup() override;
         void trace() override;
 
     private:
+        static constexpr VkFormat image_format = VK_FORMAT_R8G8B8A8_UINT;
+
         bool create_instance();
         bool create_device();
         bool create_pipeline();
         bool create_command_handles();
+        [[nodiscard]] VkImage create_image(u32 width, u32 height) const;
+        [[nodiscard]] VkImageView create_image_view(VkImage image) const;
         bool load_functions();
 
         static void * lib_;

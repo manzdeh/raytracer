@@ -40,7 +40,7 @@ static const ae::vec4f camera_pos(0.0f, 0.0f, 1.0f);
 static const ae::sphere sphere(ae::vec4f(0.0f, 0.0f, -2.0f), 1.0f);
 
 software_raytracer::software_raytracer(u32 *buffer)
-    : framebuffer_(buffer) {
+    : raytracer(buffer) {
 }
 
 bool software_raytracer::setup() {
