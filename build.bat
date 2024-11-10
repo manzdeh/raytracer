@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableDelayedExpansion
+setlocal
 
 pushd %~dp0
 
@@ -53,9 +53,11 @@ if not exist bin mkdir bin
 
 pushd .\bin
 
+echo %~dp0
+
 cl %compiler_flags% ^
     %defines% ^
-    /I"%cd%\src" /I"%cd%\Vulkan-Headers\include ^
+    /I"%~dp0\src" /I"%~dp0\Vulkan-Headers\include" ^
     %translation_units% ^
     /Fe: %outputexe% ^
     /link %linker_flags% ^

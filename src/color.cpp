@@ -1,6 +1,6 @@
 #include "color.h"
 
-#include "math.h"
+#include "aemath.h"
 
 namespace ae {
 

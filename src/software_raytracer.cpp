@@ -1,7 +1,7 @@
 #include "software_raytracer.h"
 
+#include "aemath.h"
 #include "color.h"
-#include "math.h"
 #include "ray.h"
 #include "shapes.h"
 #include "vec.h"
@@ -195,7 +195,9 @@ void software_raytracer::trace_tile(tile_data &tile) {
 }
 
 bool software_raytracer::get_next_tile(tile_data &tile) {
+#ifdef AE_PLATFORM_LINUX
     ae_pthread_locker lock{&next_tile_mutex};
+#endif
 
     if(current_col_ < col_count_) {
         tile.row = current_row_;

@@ -422,7 +422,7 @@ bool vulkan_raytracer::load_functions() {
     if(!vkGetInstanceProcAddr) {
         vkGetInstanceProcAddr = reinterpret_cast<PFN_vkGetInstanceProcAddr>(
 #ifdef AE_PLATFORM_WIN32
-            GetProcAddress(lib_, "vkGetInstanceProcAddr")
+            GetProcAddress(reinterpret_cast<HMODULE>(lib_), "vkGetInstanceProcAddr")
 #elif defined(AE_PLATFORM_LINUX)
             dlsym(lib_, "vkGetInstanceProcAddr")
 #endif

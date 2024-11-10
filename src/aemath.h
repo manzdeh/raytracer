@@ -8,7 +8,6 @@
 #include <utility>
 
 namespace ae {
-
     template<typename TType>
     static AE_FORCEINLINE TType abs(TType value) { return (value >= static_cast<TType>(0)) ? value : -value; }
 

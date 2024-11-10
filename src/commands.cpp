@@ -1,6 +1,6 @@
 #include "commands.h"
 
-#include "math.h"
+#include "aemath.h"
 #include "raytracer.h"
 
 #include <cassert>
