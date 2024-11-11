@@ -86,19 +86,11 @@ void software_raytracer::trace() {
     };
 
     auto single_threaded_routine = [this, &copy_to_framebuffer]() {
-        const u32 count_i = width_ / ae::raytracer::tile_size;
-        const u32 count_j = height_ / ae::raytracer::tile_size;
-
         tile_data tile;
 
-        for(u32 j = 0; j < count_j; j++) {
-            tile.col = j;
-
-            for(u32 i = 0; i < count_i; i++) {
-                tile.row = i;
-                trace_tile(tile);
-                copy_to_framebuffer(tile);
-            }
+        while(get_next_tile(tile)) {
+            trace_tile(tile);
+            copy_to_framebuffer(tile);
         }
     };
 
