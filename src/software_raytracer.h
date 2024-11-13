@@ -24,7 +24,9 @@ namespace ae {
     private:
         void trace_tile(tile_data &tile);
         bool get_next_tile(tile_data &tile);
-        static void * thread_func(void *data);
+
+        template<typename TType>
+        static TType thread_func(void *data);
 
         std::queue<tile_data> tile_queue_;
 

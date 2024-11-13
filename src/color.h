@@ -3,7 +3,6 @@
 #include "common.h"
 
 namespace ae {
-    // TODO: Add alpha for hsv as well
     struct hsv {
         hsv lerp(const hsv &other, f32 t) const;
 
