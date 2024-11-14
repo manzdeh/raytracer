@@ -50,18 +50,24 @@ vulkan_raytracer::~vulkan_raytracer() {
 #define AE_VULKAN_SAFE_DELETE(delete_func, handle, ...) \
     do { \
         if(handle != VK_NULL_HANDLE) { \
-            delete_func(handle, ##__VA_ARGS__); \
-            handle = VK_NULL_HANDLE; \
+            delete_func(__VA_ARGS__); \
         } \
     } while(0)
 
-    AE_VULKAN_SAFE_DELETE(vkFreeCommandBuffers, device_, command_pool_, 1, &command_buffer_);
-    AE_VULKAN_SAFE_DELETE(vkDestroyCommandPool, device_, command_pool_, nullptr);
-    AE_VULKAN_SAFE_DELETE(vkDestroyShaderModule, device_, compute_shader_module_, nullptr);
-    AE_VULKAN_SAFE_DELETE(vkDestroyPipelineLayout, device_, pipeline_layout_, nullptr);
-    AE_VULKAN_SAFE_DELETE(vkDestroyPipeline, device_, pipeline_, nullptr);
-    AE_VULKAN_SAFE_DELETE(vkDestroyDevice, device_, nullptr);
-    AE_VULKAN_SAFE_DELETE(vkDestroyInstance, instance_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkFreeCommandBuffers, command_buffer_,
+                          device_, command_pool_, 1, &command_buffer_);
+    AE_VULKAN_SAFE_DELETE(vkDestroyCommandPool, command_pool_,
+                          device_, command_pool_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkDestroyShaderModule, compute_shader_module_,
+                          device_, compute_shader_module_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkDestroyPipelineLayout, pipeline_layout_,
+                          device_, pipeline_layout_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkDestroyPipeline, pipeline_,
+                          device_, pipeline_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkDestroyDevice, device_,
+                          device_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkDestroyInstance, instance_,
+                          instance_, nullptr);
 
 #undef AE_VULKAN_SAFE_DELETE
 }
