@@ -17,6 +17,8 @@ int main(int argc, char *argv[]) {
         std::make_unique<ae::output>(std::string_view("output.tga"));
 
     run_raytracer(output->get_buffer());
+
+    ae::vulkan_raytracer::terminate(); // Only frees the dynamic lib if it was loaded
     ae::command_handler::destroy();
 
     return 0;
@@ -51,7 +53,6 @@ void run_raytracer(void *buffer) {
 
     if(success) {
         raytracer->trace();
-        ae::vulkan_raytracer::terminate();
     } else {
         // TODO: Print an error message to stderr
     }

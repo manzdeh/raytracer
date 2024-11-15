@@ -10,8 +10,44 @@
 
 #include <cassert>
 #include <cstdio>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan.h>
+
+template<typename THandle, typename TParentObject, typename TDestroyFunc>
+class vulkan_handle {
+public:
+    vulkan_handle(TParentObject parent, TDestroyFunc destroy_func)
+        : parent_(parent)
+        , destroy_(destroy_func) {}
+
+    vulkan_handle(THandle handle, TParentObject parent, TDestroyFunc destroy_func)
+        : handle_(handle)
+        , parent_(parent)
+        , destroy_(destroy_func) {}
+
+    ~vulkan_handle() {
+        if(handle_ != VK_NULL_HANDLE && destroy_) {
+            destroy_(parent_, handle_, nullptr);
+            handle_ = VK_NULL_HANDLE;
+        }
+    }
+
+    template<typename... TArgs>
+    bool create(auto create_func, TArgs&&... args) {
+        return create_func(parent_, std::forward<TArgs>(args)..., nullptr, &handle_)
+            == VK_SUCCESS;
+    }
+
+    operator bool() const { return handle_ != VK_NULL_HANDLE; }
+    explicit operator THandle() { return handle_; }
+    THandle operator*() { return handle_; }
+
+private:
+    THandle handle_ = VK_NULL_HANDLE;
+    TParentObject parent_ = VK_NULL_HANDLE;
+    TDestroyFunc destroy_ = nullptr;
+};
 
 namespace ae {
 
@@ -93,25 +129,24 @@ bool vulkan_raytracer::setup() {
 }
 
 void vulkan_raytracer::trace() {
-    // TODO: Disabled for now, since this is still a WIP
-#if 0
     auto [w, h] = raytracer::get_resolution();
 
-    // Image and memory allocation
-    // TODO: The lifetime management of these resources can be done a bit more cleanly with RAII-wrappers instead
-    VkImage image = create_image(w, h);
-    if(image == VK_NULL_HANDLE) {
+    vulkan_handle<VkImage, VkDevice, decltype(vkDestroyImage)>
+        image(create_image(w, h), device_, vkDestroyImage);
+
+    if(!image) {
         return;
     }
 
-    VkImageView image_view = create_image_view(image);
-    if(image_view == VK_NULL_HANDLE) {
-        vkDestroyImage(device_, image, nullptr);
+    vulkan_handle<VkImageView, VkDevice, decltype(vkDestroyImageView)>
+        image_view(create_image_view(*image), device_, vkDestroyImageView);
+
+    if(!image_view) {
         return;
     }
 
     VkMemoryRequirements memory_requirements;
-    vkGetImageMemoryRequirements(device_, image, &memory_requirements);
+    vkGetImageMemoryRequirements(device_, *image, &memory_requirements);
 
     const VkMemoryAllocateInfo allocate_info = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -131,11 +166,11 @@ void vulkan_raytracer::trace() {
         }(memory_requirements)
     };
 
-    VkDeviceMemory device_memory;
+    vulkan_handle<VkDeviceMemory, VkDevice, decltype(vkFreeMemory)>
+        device_memory(device_, vkFreeMemory);
+
     if(allocate_info.memoryTypeIndex == static_cast<u32>(-1)
-        || vkAllocateMemory(device_, &allocate_info, nullptr, &device_memory) != VK_SUCCESS) {
-        vkDestroyImageView(device_, image_view, nullptr);
-        vkDestroyImage(device_, image, nullptr);
+       || !device_memory.create(vkAllocateMemory, &allocate_info)) {
         return;
     }
 
@@ -164,16 +199,11 @@ void vulkan_raytracer::trace() {
     vkQueueWaitIdle(queue);
 
     vkMapMemory(device_,
-                device_memory,
+                *device_memory,
                 0,
                 w * h * 4,
                 0,
                 reinterpret_cast<void **>(&framebuffer_));
-
-    vkDestroyImageView(device_, image_view, nullptr);
-    vkDestroyImage(device_, image, nullptr);
-    vkFreeMemory(device_, device_memory, nullptr);
-#endif
 }
 
 bool vulkan_raytracer::create_instance() {
@@ -198,8 +228,7 @@ bool vulkan_raytracer::create_instance() {
         .pApplicationInfo = &application_info
     };
 
-    const VkResult result = vkCreateInstance(&create_info, nullptr, &instance_);
-    return result == VK_SUCCESS;
+    return vkCreateInstance(&create_info, nullptr, &instance_) == VK_SUCCESS;
 }
 
 bool vulkan_raytracer::create_device() {
@@ -269,8 +298,7 @@ bool vulkan_raytracer::create_device() {
         .pQueueCreateInfos = queue_create_infos
     };
 
-    const VkResult result = vkCreateDevice(physical_device_, &create_info, nullptr, &device_);
-    return result == VK_SUCCESS;
+    return vkCreateDevice(physical_device_, &create_info, nullptr, &device_) == VK_SUCCESS;
 }
 
 bool vulkan_raytracer::create_pipeline() {
@@ -292,18 +320,21 @@ bool vulkan_raytracer::create_pipeline() {
             .pCode = reinterpret_cast<const u32 *>(shader_buffer.data())
         };
 
+        std::fclose(shader_file);
+
         if(vkCreateShaderModule(device_, &shader_module_create_info, nullptr, &compute_shader_module_) != VK_SUCCESS) {
             return false;
         }
-
-        std::fclose(shader_file);
     } else {
         return false;
     }
 
     const VkPipelineLayoutCreateInfo pipeline_layout_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        // TODO: Fill out rest of the layout
+        .setLayoutCount = 0,
+        .pSetLayouts = nullptr,
+        .pushConstantRangeCount = 0,
+        .pPushConstantRanges = nullptr
     };
 
     if(vkCreatePipelineLayout(device_, &pipeline_layout_create_info, nullptr, &pipeline_layout_) != VK_SUCCESS) {
@@ -326,13 +357,12 @@ bool vulkan_raytracer::create_pipeline() {
         }
     };
 
-    const VkResult result = vkCreateComputePipelines(device_,
-                                                     VK_NULL_HANDLE,
-                                                     AE_ARRAY_COUNT(create_infos),
-                                                     create_infos,
-                                                     nullptr,
-                                                     &pipeline_);
-    return result == VK_SUCCESS;
+    return vkCreateComputePipelines(device_,
+                                    VK_NULL_HANDLE,
+                                    AE_ARRAY_COUNT(create_infos),
+                                    create_infos,
+                                    nullptr,
+                                    &pipeline_) == VK_SUCCESS;
 }
 
 bool vulkan_raytracer::create_command_handles() {
@@ -352,8 +382,7 @@ bool vulkan_raytracer::create_command_handles() {
         .commandBufferCount = 1
     };
 
-    const VkResult result = vkAllocateCommandBuffers(device_, &allocate_info, &command_buffer_);
-    return result == VK_SUCCESS;
+    return vkAllocateCommandBuffers(device_, &allocate_info, &command_buffer_) == VK_SUCCESS;
 }
 
 VkImage vulkan_raytracer::create_image(u32 width, u32 height) const {
