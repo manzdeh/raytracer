@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 #include <initializer_list>
 #include <utility>
 #include <vector>
@@ -20,7 +21,7 @@ static const char * get_property_name(const VkLayerProperties &layer) { return l
 static const char * get_property_name(const VkExtensionProperties &extension) { return extension.extensionName; }
 
 template<typename TType, typename TEnumerateFunc, typename... TArgs>
-static void fill_supported_property_requests(const std::initializer_list<const char *>requested,
+static void fill_supported_property_requests(const std::initializer_list<const char *> &requested,
                                              std::vector<const char *> &supported,
                                              TEnumerateFunc enumerate_func,
                                              TArgs&&... args) {
@@ -37,7 +38,7 @@ static void fill_supported_property_requests(const std::initializer_list<const c
         if(enumerate_func(std::forward<TArgs>(args)..., &count, properties.data()) == VK_SUCCESS) {
             for(const char *request : requested) {
                 for(size_t i = 0; i < properties.size(); i++) {
-                    if(strcmp(request, get_property_name(properties[i])) == 0) {
+                    if(std::strcmp(request, get_property_name(properties[i])) == 0) {
                         supported.push_back(request);
                     }
                 }
@@ -329,7 +330,7 @@ void vulkan_raytracer::trace() {
                 0,
                 &data);
 
-    memcpy(framebuffer_, data, allocate_info.allocationSize);
+    std::memcpy(framebuffer_, data, allocate_info.allocationSize);
     vkUnmapMemory(device_, *device_memory);
 }
 
