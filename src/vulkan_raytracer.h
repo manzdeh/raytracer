@@ -20,7 +20,7 @@ namespace ae {
         void trace() override;
 
     private:
-        static constexpr VkFormat image_format = VK_FORMAT_R8G8B8A8_UINT;
+        static constexpr VkFormat image_format = VK_FORMAT_B8G8R8A8_UNORM;
 
         bool create_instance();
         bool create_device();
@@ -35,6 +35,8 @@ namespace ae {
         VkPhysicalDevice physical_device_ = VK_NULL_HANDLE;
         VkDevice device_ = VK_NULL_HANDLE;
         VkShaderModule compute_shader_module_ = VK_NULL_HANDLE;
+        VkDescriptorSetLayout descriptor_set_layout_ = VK_NULL_HANDLE;
+        VkDescriptorPool descriptor_pool_ = VK_NULL_HANDLE;
         VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
         VkPipeline pipeline_ = VK_NULL_HANDLE;
         VkCommandPool command_pool_ = VK_NULL_HANDLE;

@@ -10,9 +10,42 @@
 
 #include <cassert>
 #include <cstdio>
+#include <initializer_list>
 #include <utility>
 #include <vector>
 #include <vulkan/vulkan.h>
+
+#ifdef AE_DEBUG
+static const char * get_property_name(const VkLayerProperties &layer) { return layer.layerName; }
+static const char * get_property_name(const VkExtensionProperties &extension) { return extension.extensionName; }
+
+template<typename TType, typename TEnumerateFunc, typename... TArgs>
+static void fill_supported_property_requests(const std::initializer_list<const char *>requested,
+                                             std::vector<const char *> &supported,
+                                             TEnumerateFunc enumerate_func,
+                                             TArgs&&... args) {
+    if(requested.size() == 0) {
+        return;
+    }
+
+    supported.clear();
+
+    u32 count;
+    if(enumerate_func(std::forward<TArgs>(args)..., &count, nullptr) == VK_SUCCESS) {
+        std::vector<TType> properties(count);
+
+        if(enumerate_func(std::forward<TArgs>(args)..., &count, properties.data()) == VK_SUCCESS) {
+            for(const char *request : requested) {
+                for(size_t i = 0; i < properties.size(); i++) {
+                    if(strcmp(request, get_property_name(properties[i])) == 0) {
+                        supported.push_back(request);
+                    }
+                }
+            }
+        }
+    }
+}
+#endif
 
 template<typename THandle, typename TParentObject, typename TDestroyFunc>
 class vulkan_handle {
@@ -96,6 +129,10 @@ vulkan_raytracer::~vulkan_raytracer() {
                           device_, command_pool_, nullptr);
     AE_VULKAN_SAFE_DELETE(vkDestroyShaderModule, compute_shader_module_,
                           device_, compute_shader_module_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkDestroyDescriptorSetLayout, descriptor_set_layout_,
+                          device_, descriptor_set_layout_, nullptr);
+    AE_VULKAN_SAFE_DELETE(vkDestroyDescriptorPool, descriptor_pool_,
+                          device_, descriptor_pool_, nullptr);
     AE_VULKAN_SAFE_DELETE(vkDestroyPipelineLayout, pipeline_layout_,
                           device_, pipeline_layout_, nullptr);
     AE_VULKAN_SAFE_DELETE(vkDestroyPipeline, pipeline_,
@@ -138,13 +175,6 @@ void vulkan_raytracer::trace() {
         return;
     }
 
-    vulkan_handle<VkImageView, VkDevice, decltype(vkDestroyImageView)>
-        image_view(create_image_view(*image), device_, vkDestroyImageView);
-
-    if(!image_view) {
-        return;
-    }
-
     VkMemoryRequirements memory_requirements;
     vkGetImageMemoryRequirements(device_, *image, &memory_requirements);
 
@@ -155,9 +185,11 @@ void vulkan_raytracer::trace() {
             VkPhysicalDeviceMemoryProperties memory_properties;
             vkGetPhysicalDeviceMemoryProperties(physical_device_, &memory_properties);
 
+            constexpr u32 required_flags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+
             for(u32 i = 0; i < memory_properties.memoryTypeCount; i++) {
                 if((requirements.memoryTypeBits & (1 << i))
-                   && (memory_properties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))) {
+                   && ((memory_properties.memoryTypes[i].propertyFlags & required_flags) == required_flags)) {
                     return i;
                 }
             }
@@ -170,45 +202,150 @@ void vulkan_raytracer::trace() {
         device_memory(device_, vkFreeMemory);
 
     if(allocate_info.memoryTypeIndex == static_cast<u32>(-1)
-       || !device_memory.create(vkAllocateMemory, &allocate_info)) {
+       || !device_memory.create(vkAllocateMemory, &allocate_info)
+       || (vkBindImageMemory(device_, *image, *device_memory, 0) != VK_SUCCESS)) {
         return;
     }
 
-    // Command buffer recoding
+    vulkan_handle<VkImageView, VkDevice, decltype(vkDestroyImageView)>
+        image_view(create_image_view(*image), device_, vkDestroyImageView);
+
+    if(!image_view) {
+        return;
+    }
+
+    const VkDescriptorSetAllocateInfo descriptor_set_allocate_info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = descriptor_pool_,
+        .descriptorSetCount = 1,
+        .pSetLayouts = &descriptor_set_layout_
+    };
+
+    VkDescriptorSet descriptor_set;
+    if(vkAllocateDescriptorSets(device_, &descriptor_set_allocate_info, &descriptor_set) != VK_SUCCESS) {
+        return;
+    }
+
+    const VkDescriptorImageInfo descriptor_image_info = {
+        .sampler = VK_NULL_HANDLE,
+        .imageView = *image_view,
+        .imageLayout = VK_IMAGE_LAYOUT_GENERAL
+    };
+
+    const VkWriteDescriptorSet write_descriptor_sets[] = {
+        {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .dstSet = descriptor_set,
+            .dstBinding = 0,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .pImageInfo = &descriptor_image_info
+        }
+    };
+
+    vkUpdateDescriptorSets(device_,
+                           AE_ARRAY_COUNT(write_descriptor_sets),
+                           write_descriptor_sets,
+                           0,
+                           nullptr);
+
+    // Command buffer recording
     const VkCommandBufferBeginInfo command_buffer_begin_info = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
     vkBeginCommandBuffer(command_buffer_, &command_buffer_begin_info);
 
     vkCmdBindPipeline(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_);
+
+    const VkImageMemoryBarrier image_barrier = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT,
+        .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+        .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+        .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+        .image = *image,
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+
+    vkCmdPipelineBarrier(command_buffer_,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         0,
+                         0,
+                         nullptr,
+                         0,
+                         nullptr,
+                         1,
+                         &image_barrier);
+
+    vkCmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout_, 0, 1, &descriptor_set, 0, nullptr);
     vkCmdDispatch(command_buffer_, w / 16, h / 16, 1);
 
     vkEndCommandBuffer(command_buffer_);
 
+    // Queue submission
     const VkSubmitInfo submit_info = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .commandBufferCount = 1,
         .pCommandBuffers = &command_buffer_
     };
 
+    vulkan_handle<VkFence, VkDevice, decltype(vkDestroyFence)>
+        fence(device_, vkDestroyFence);
+
+    const VkFenceCreateInfo fence_create_info = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO
+    };
+
+    if(!fence.create(vkCreateFence, &fence_create_info)) {
+        return;
+    }
+
     VkQueue queue;
     vkGetDeviceQueue(device_, queue_family_index_, 0, &queue);
 
-    // Queue submission
-    vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkQueueWaitIdle(queue);
+    vkQueueSubmit(queue, 1, &submit_info, *fence);
 
+    VkFence fence_handle = static_cast<VkFence>(fence);
+    vkWaitForFences(device_, 1, &fence_handle, VK_TRUE, 1'000'000'000);
+
+    assert(allocate_info.allocationSize == (w * h * 4));
+
+    void *data;
     vkMapMemory(device_,
                 *device_memory,
                 0,
-                w * h * 4,
+                allocate_info.allocationSize,
                 0,
-                reinterpret_cast<void **>(&framebuffer_));
+                &data);
+
+    memcpy(framebuffer_, data, allocate_info.allocationSize);
+    vkUnmapMemory(device_, *device_memory);
 }
 
 bool vulkan_raytracer::create_instance() {
     u32 api_version;
     vkEnumerateInstanceVersion(&api_version);
+
+#ifdef AE_DEBUG
+    std::vector<const char *> layers;
+    fill_supported_property_requests<VkLayerProperties, decltype(vkEnumerateInstanceLayerProperties)>
+        ({ "VK_LAYER_KHRONOS_validation" }, layers, vkEnumerateInstanceLayerProperties);
+
+    std::vector<const char *>extensions;
+    fill_supported_property_requests<VkExtensionProperties, decltype(vkEnumerateInstanceExtensionProperties)>
+        ({ VK_EXT_DEBUG_UTILS_EXTENSION_NAME }, extensions, vkEnumerateInstanceExtensionProperties, nullptr);
+#endif
 
     const u32 major = VK_API_VERSION_MAJOR(api_version);
     const u32 minor = VK_API_VERSION_MINOR(api_version);
@@ -219,13 +356,18 @@ bool vulkan_raytracer::create_instance() {
 
     const VkApplicationInfo application_info = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .applicationVersion = VK_MAKE_API_VERSION(0, req_major_version, req_minor_version, 0),
         .apiVersion = VK_MAKE_API_VERSION(0, req_major_version, req_minor_version, 0)
     };
 
     const VkInstanceCreateInfo create_info = {
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pApplicationInfo = &application_info
+        .pApplicationInfo = &application_info,
+#ifdef AE_DEBUG
+        .enabledLayerCount = static_cast<u32>(layers.size()),
+        .ppEnabledLayerNames = layers.data(),
+        .enabledExtensionCount = static_cast<u32>(extensions.size()),
+        .ppEnabledExtensionNames = extensions.data()
+#endif
     };
 
     return vkCreateInstance(&create_info, nullptr, &instance_) == VK_SUCCESS;
@@ -329,10 +471,48 @@ bool vulkan_raytracer::create_pipeline() {
         return false;
     }
 
+    const VkDescriptorSetLayoutBinding descriptor_set_layout_bindings[] = {
+        {
+            .binding = 0,
+            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .descriptorCount = 1,
+            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+            .pImmutableSamplers = nullptr
+        }
+    };
+
+    const VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .bindingCount = AE_ARRAY_COUNT(descriptor_set_layout_bindings),
+        .pBindings = descriptor_set_layout_bindings
+    };
+
+    if(vkCreateDescriptorSetLayout(device_, &descriptor_set_layout_create_info, nullptr, &descriptor_set_layout_) != VK_SUCCESS) {
+        return false;
+    }
+
+    const VkDescriptorPoolSize descriptor_pool_sizes[] = {
+        {
+            .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+            .descriptorCount = 1
+        }
+    };
+
+    const VkDescriptorPoolCreateInfo descriptor_pool_create_info = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .maxSets = 1,
+        .poolSizeCount = AE_ARRAY_COUNT(descriptor_pool_sizes),
+        .pPoolSizes = descriptor_pool_sizes
+    };
+
+    if(vkCreateDescriptorPool(device_, &descriptor_pool_create_info, nullptr, &descriptor_pool_) != VK_SUCCESS) {
+        return false;
+    }
+
     const VkPipelineLayoutCreateInfo pipeline_layout_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .setLayoutCount = 0,
-        .pSetLayouts = nullptr,
+        .setLayoutCount = 1,
+        .pSetLayouts = &descriptor_set_layout_,
         .pushConstantRangeCount = 0,
         .pPushConstantRanges = nullptr
     };
@@ -398,7 +578,7 @@ VkImage vulkan_raytracer::create_image(u32 width, u32 height) const {
         .mipLevels = 1,
         .arrayLayers = 1,
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .tiling = VK_IMAGE_TILING_LINEAR,
         .usage = VK_IMAGE_USAGE_STORAGE_BIT,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 1,

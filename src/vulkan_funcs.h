@@ -5,6 +5,7 @@
 #define AE_VULKAN_GLOBAL_FUNCS \
     X(vkCreateInstance) \
     X(vkEnumerateInstanceLayerProperties) \
+    X(vkEnumerateInstanceExtensionProperties) \
     X(vkEnumerateInstanceVersion)
 
 #define AE_VULKAN_INSTANCE_FUNCS \
@@ -21,6 +22,10 @@
     X(vkDeviceWaitIdle) \
     X(vkCreateShaderModule) \
     X(vkDestroyShaderModule) \
+    X(vkCreateDescriptorSetLayout) \
+    X(vkDestroyDescriptorSetLayout) \
+    X(vkCreateDescriptorPool) \
+    X(vkDestroyDescriptorPool) \
     X(vkCreatePipelineLayout) \
     X(vkDestroyPipelineLayout) \
     X(vkCreateComputePipelines) \
@@ -32,17 +37,27 @@
     X(vkBeginCommandBuffer) \
     X(vkEndCommandBuffer) \
     X(vkCmdBindPipeline) \
+    X(vkCmdPipelineBarrier) \
+    X(vkCmdBindDescriptorSets) \
+    X(vkCmdDispatch) \
+    X(vkCreateFence) \
+    X(vkDestroyFence) \
     X(vkQueueSubmit) \
     X(vkQueueWaitIdle) \
-    X(vkCmdDispatch) \
+    X(vkWaitForFences) \
     X(vkMapMemory) \
+    X(vkUnmapMemory) \
     X(vkCreateImage) \
     X(vkDestroyImage) \
     X(vkCreateImageView) \
     X(vkDestroyImageView) \
     X(vkGetImageMemoryRequirements) \
     X(vkAllocateMemory) \
-    X(vkFreeMemory)
+    X(vkFreeMemory) \
+    X(vkBindImageMemory) \
+    X(vkAllocateDescriptorSets) \
+    X(vkFreeDescriptorSets) \
+    X(vkUpdateDescriptorSets)
 
 inline PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 
