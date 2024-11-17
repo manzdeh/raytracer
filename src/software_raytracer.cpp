@@ -155,8 +155,6 @@ void software_raytracer::trace() {
             pthread_attr_setdetachstate(&attrib, PTHREAD_CREATE_DETACHED);
 
             for(u32 i = 0; i < thread_count; i++) {
-                // These threads don't need to be destroyed/joined manually,
-                // because they're created in a detached state
                 pthread_t thread;
                 pthread_create(&thread,
                                &attrib,

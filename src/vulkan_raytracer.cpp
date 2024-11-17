@@ -16,6 +16,12 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 
+struct push_constants {
+    ae::color bg0;
+    ae::color bg1;
+};
+static_assert(sizeof(push_constants) <= 128, "128 Bytes is the guaranteed min size for push constants");
+
 #ifdef AE_DEBUG
 static const char * get_property_name(const VkLayerProperties &layer) { return layer.layerName; }
 static const char * get_property_name(const VkExtensionProperties &extension) { return extension.extensionName; }
@@ -147,23 +153,10 @@ vulkan_raytracer::~vulkan_raytracer() {
 }
 
 bool vulkan_raytracer::setup() {
-    if(!lib_) {
-        return false;
-    }
-
-    if(!load_functions()) {
-        return false;
-    }
-
-    if(!create_pipeline()) {
-        return false;
-    }
-
-    if(!create_command_handles()) {
-        return false;
-    }
-
-    return true;
+    return lib_
+        && load_functions()
+        && create_pipeline()
+        && create_command_handles();
 }
 
 void vulkan_raytracer::trace() {
@@ -289,6 +282,12 @@ void vulkan_raytracer::trace() {
                          1,
                          &image_barrier);
 
+    push_constants pc = {
+        .bg0 = raytracer::background0,
+        .bg1 = raytracer::background1
+    };
+
+    vkCmdPushConstants(command_buffer_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
     vkCmdBindDescriptorSets(command_buffer_, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout_, 0, 1, &descriptor_set, 0, nullptr);
     vkCmdDispatch(command_buffer_, w / 16, h / 16, 1);
 
@@ -318,7 +317,7 @@ void vulkan_raytracer::trace() {
     vkQueueSubmit(queue, 1, &submit_info, *fence);
 
     VkFence fence_handle = static_cast<VkFence>(fence);
-    vkWaitForFences(device_, 1, &fence_handle, VK_TRUE, 1'000'000'000);
+    vkWaitForFences(device_, 1, &fence_handle, VK_TRUE, static_cast<u32>(-1));
 
     assert(allocate_info.allocationSize == (w * h * 4));
 
@@ -510,12 +509,20 @@ bool vulkan_raytracer::create_pipeline() {
         return false;
     }
 
+    const VkPushConstantRange push_constant_ranges[] = {
+        {
+            .stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+            .offset = 0,
+            .size = sizeof(push_constants)
+        }
+    };
+
     const VkPipelineLayoutCreateInfo pipeline_layout_create_info = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .setLayoutCount = 1,
         .pSetLayouts = &descriptor_set_layout_,
-        .pushConstantRangeCount = 0,
-        .pPushConstantRanges = nullptr
+        .pushConstantRangeCount = AE_ARRAY_COUNT(push_constant_ranges),
+        .pPushConstantRanges = push_constant_ranges
     };
 
     if(vkCreatePipelineLayout(device_, &pipeline_layout_create_info, nullptr, &pipeline_layout_) != VK_SUCCESS) {

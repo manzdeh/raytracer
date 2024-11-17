@@ -38,6 +38,7 @@
     X(vkEndCommandBuffer) \
     X(vkCmdBindPipeline) \
     X(vkCmdPipelineBarrier) \
+    X(vkCmdPushConstants) \
     X(vkCmdBindDescriptorSets) \
     X(vkCmdDispatch) \
     X(vkCreateFence) \
