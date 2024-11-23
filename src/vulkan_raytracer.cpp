@@ -6,6 +6,7 @@
 #include "common_linux.h"
 #endif
 
+#include "vec.h"
 #include "vulkan_funcs.h"
 
 #include <cassert>
@@ -19,8 +20,10 @@
 struct push_constants {
     ae::color bg0;
     ae::color bg1;
+    ae::vec4f cam_pos;
+    ae::vec4f sphere; // [x y z] = position, [w] = radius
 };
-static_assert(sizeof(push_constants) <= 128, "128 Bytes is the guaranteed min size for push constants");
+static_assert(sizeof(push_constants) <= 128, "128 bytes is the guaranteed min size for push constants");
 
 #ifdef AE_DEBUG
 static const char * get_property_name(const VkLayerProperties &layer) { return layer.layerName; }
@@ -284,7 +287,12 @@ void vulkan_raytracer::trace() {
 
     push_constants pc = {
         .bg0 = raytracer::background0,
-        .bg1 = raytracer::background1
+        .bg1 = raytracer::background1,
+        .cam_pos = raytracer::camera_pos,
+        .sphere = ae::vec4f(raytracer::sphere.center_.x_,
+                            raytracer::sphere.center_.y_,
+                            raytracer::sphere.center_.z_,
+                            raytracer::sphere.radius_)
     };
 
     vkCmdPushConstants(command_buffer_, pipeline_layout_, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);

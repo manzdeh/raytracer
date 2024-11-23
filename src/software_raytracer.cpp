@@ -61,10 +61,6 @@ static void cond_signal(ae_condition_variable *cv);
 
 namespace ae {
 
-// Test scene
-static const ae::vec4f camera_pos(0.0f, 0.0f, 1.0f);
-static const ae::sphere sphere(ae::vec4f(0.0f, 0.0f, -2.0f), 1.0f);
-
 software_raytracer::software_raytracer(u32 *buffer)
     : raytracer(buffer) {
 }
@@ -222,12 +218,12 @@ void software_raytracer::trace_tile(tile_data &tile) {
             const ae::vec4f uv = (ae::vec4f(static_cast<f32>(x + xstart) + 0.5f, yf + 0.5f, 0.0f) * pixel_size_)
                 - (viewport_size_ * ae::vec4f(0.5f, 0.5f, 1.0f));
 
-            const ae::ray ray(camera_pos, uv - camera_pos);
+            const ae::ray ray(ae::raytracer::camera_pos, uv - ae::raytracer::camera_pos);
             ae::ray_hit_info hit_info;
 
             u32 *pixel = &tile.pixels[y * ae::raytracer::tile_size + x];
 
-            if(sphere.intersects(ray, hit_info)) {
+            if(ae::raytracer::sphere.intersects(ray, hit_info)) {
                 const std::pair<f32, f32> input{-1.0f, 1.0f};
                 const std::pair<f32, f32> output{0.0f, 1.0f};
 

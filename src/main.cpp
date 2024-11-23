@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 
     run_raytracer(output->get_buffer());
 
-    ae::vulkan_raytracer::terminate(); // Only frees the dynamic lib if it was loaded
+    ae::vulkan_raytracer::terminate();
     ae::command_handler::destroy();
 
     return 0;

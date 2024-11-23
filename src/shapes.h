@@ -14,7 +14,6 @@ namespace ae {
 
         bool intersects(const ae::ray &ray, ae::ray_hit_info &out_hit_info) const;
 
-    private:
         ae::vec4f center_;
         f32 radius_ = 0.0f;
     };

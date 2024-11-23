@@ -2,6 +2,7 @@
 
 #include "color.h"
 #include "common.h"
+#include "shapes.h"
 
 #include <span>
 #include <utility>
@@ -10,8 +11,12 @@ namespace ae {
     class raytracer {
     public:
         static constexpr u32 tile_size = 4;
+
+        // Test scene
         static ae::color background0;
         static ae::color background1;
+        static ae::vec4f camera_pos;
+        static ae::sphere sphere;
 
         static std::pair<u32, u32> get_resolution();
 
