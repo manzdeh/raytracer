@@ -10,19 +10,47 @@ struct scene_constants {
 [[vk::push_constant]] scene_constants scene;
 [[vk::binding(0, 0)]] RWTexture2D<float4> image;
 
-bool has_intersection(in float4 dir) {
-    float3 oc = scene.sphere.xyz - scene.cam.xyz;
-    float a = dot(dir.xyz, dir.xyz);
-    float b = -2.0 * dot(dir.xyz, oc);
-    float c = dot(oc, oc) - scene.sphere.w * scene.sphere.w;
+struct hit_info {
+    float3 pos;
+    float3 normal;
+    float t;
+};
+
+bool has_intersection(in float3 origin, in float3 dir, out hit_info info) {
+    float radius = scene.sphere.w;
+
+    float3 oc = scene.sphere.xyz - origin;
+    float a = dot(dir, dir);
+    float b = -2.0 * dot(dir, oc);
+    float c = dot(oc, oc) - radius * radius;
 
     float discriminant = b * b - 4 * a * c;
 
     if(discriminant >= 0) {
+        info.t = (-b - sqrt(discriminant)) / (2.0 * a);
+        info.pos = origin + (dir * info.t);
+        info.normal = normalize(info.pos - scene.sphere.xyz);
         return true;
     }
 
     return false;
+}
+
+float3 remap(in float3 value,
+             in float input_min,
+             in float input_max,
+             in float output_min,
+             in float output_max) {
+
+    float3 i0 = (float3)input_min;
+    float3 i1 = (float3)input_max;
+    float3 o0 = (float3)output_min;
+    float3 o1 = (float3)output_max;
+
+    return o0
+        + (value - i0)
+        * (o1 - o0)
+        / (i1 - i0);
 }
 
 [numthreads(16, 16, 1)]
@@ -40,16 +68,18 @@ void main(uint3 id : SV_DispatchThreadID) {
         h = height / width;
     }
 
-    float4 viewport = float4(w, h, 0.0, 0.0);
-    float4 pixel_size = viewport / float4(width, height, 1.0, 1.0);
+    float3 viewport = float3(w, h, 0);
+    float3 pixel_size = viewport / float3(width, height, 1.0);
 
-    float4 uv = (float4(float2(id.xy) + float2(0.5, 0.5), 0.0, 0.0) * pixel_size)
-        - (viewport * float4(0.5, 0.5, 1.0, 0.0));
+    float3 uv = (float3(float2(id.xy) + float2(0.5, 0.5), 0) * pixel_size)
+        - (viewport * float3(0.5, 0.5, 1.0));
 
-    float4 dir = normalize(uv - scene.cam);
+    float3 origin = scene.cam.xyz;
+    float3 dir = normalize(uv - origin);
 
-    if(has_intersection(dir)) {
-        image[id.xy] = float4(1.0, 0.0, 0.0, 1.0);
+    hit_info info;
+    if(has_intersection(origin, dir, info)) {
+        image[id.xy] = float4(remap(info.normal, -1.0, 1.0, 0.0, 1.0), 1.0);
     } else {
         image[id.xy] = float4(lerp(scene.background0.gba,
                                    scene.background1.gba,
